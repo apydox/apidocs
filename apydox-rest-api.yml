@@ -1,0 +1,121 @@
+openapi: 3.0.1
+info:
+  title: apydox REST API
+  description: The REST API for the apydox API documentation portal
+  version: 1.0.0
+servers:
+- url: https://apydox.com/api/core/v1
+  description: The apydox server API (For self-hosted instances the domain will be different)
+paths:
+  /config/{name}:
+    put:
+      summary: Save a specific piece of configuration needed for apydox to run
+      description: Save a specific piece of configuration needed for apydox to run. This is only available on initial set up, any requests to this endpoint after the set up phase will return a 403 response. If you need to update configuration for an apydox portal, you should deploy a new instance of apydox.
+      operation: putConfig
+      tags:
+        - set up
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [database,elasticSearch,identityProviders]
+          example: elasticSearch
+          description: The name of the configuration to be saved
+        - name: effect
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [testConnection]
+          example: testConnection
+          description: A side-effect to run before or after persisting config, currently only testConnection is supported, which happens before persisting configuration where failure means the config will not be saved.
+      requestBody:
+          description: The configuration to be saved
+          required: true
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ElasticSearchConfiguration'
+                  - $ref: '#/components/schemas/DatabaseConfiguration'
+                  - $ref: '#/components/schemas/IdentityProviderConfiguration'
+      responses:
+        200:
+          description: Configuration was successfully saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSavedResponse'
+        403:
+          description: You don't have permission to update configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenResponse'
+        500:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedErrorResponse'
+components:
+  schemas:
+    ElasticSearchConfiguration:
+      type: object
+      required:
+        - host
+        - port
+      properties:
+        host:
+          type: string
+          description: The elastic search host to connect to
+          example: my.search-cluster.com
+        port:
+          type: number
+          description: The port to connect to elastic search on
+          example: 9200
+        username:
+          type: string
+          description: The username of the elastic search user to connect with, you should most certainly provide this if your elastic search instance is accessible over the public internet.
+          example: admin
+        password:
+          type: string
+          description: The password of the elastic search to connect with, you should most certainly provide this if your elastic search instance is accessible over the public internet.
+    DatabaseConfiguration:
+      type: object
+      description: The configuration for the database that backs apydox, for cloud-managed NoSQL services like AWS DynamoDB or Google Cloud Datastore, there is no need for any credentials to be provided but the server running must be configured with a role/service account with the correct permissions to access a data store.
+      properties:
+        type:
+          type: string
+          description: the type of database to connect to.
+          enum: [mysql,postgres,dynamodb,mongodb,googleclouddatastore]
+          example: mysql
+        host:
+          type: string
+          description: The host of the database to connect to. (mysql, postgres, mongodb)
+          example: my.database-cluster.com
+        port:
+          type: string
+          description: The port the database is running on. (mysql, postgres, mongodb)
+          example: 3306
+        username:
+          type: string
+          description: The username of the user to connect to the database with. (mysql, postgres, mongodb)
+          example: admin
+        password:
+          type: string
+        databaseOrTableName:
+          type: string
+          description: The name of the database or NoSQL table to connect to. (applies to all database types)
+        
+          
+    UnexpectedErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: An unexpected error occurred
+security:
+  - bearerAuth: []
