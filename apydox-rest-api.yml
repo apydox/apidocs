@@ -11,7 +11,7 @@ paths:
     put:
       summary: Save a specific piece of configuration needed for apydox to run
       description: Save a specific piece of configuration needed for apydox to run. This is only available on initial set up, any requests to this endpoint after the set up phase will return a 403 response. If you need to update configuration for an apydox portal, you should deploy a new instance of apydox.
-      operation: putConfig
+      operationId: putConfig
       tags:
         - set up
       parameters:
@@ -60,6 +60,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnexpectedErrorResponse'
+  /user/me:
+    get:
+      summary: Get the current user.
+      description: Get the current user represented by the token in the authorisation header. This serves a dual purpose of carrying out identity checks and retrieving information about the currently logged in user.
+      tags:
+        - users
+      responses:
+        200:
+          description: The current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfoResponse'
+        401:
+          description: Current user could not be derived from auth token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorisedResponse'
+        409:
+          description: Conflict, set up required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupRequiredResponse'
+        500:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnexpectedErrorResponse'
+      security:
+          - bearerAuth: []
 components:
   schemas:
     ElasticSearchConfiguration:
@@ -109,13 +142,75 @@ components:
         databaseOrTableName:
           type: string
           description: The name of the database or NoSQL table to connect to. (applies to all database types)
-        
-          
+    IdentityProviderConfiguration:
+      type: object
+      description: The configuration for identity providers for single sign-on. At least 1 identity provider mapping must be provided when saving identity provider configuration.
+      properties:
+        bitbucket:
+          $ref: '#/components/schemas/OAuthConfigurationEntry'
+        github:
+          $ref: '#/components/schemas/OAuthConfigurationEntry'
+        gitlab:
+          $ref: '#/components/schemas/OAuthConfigurationEntry'
+        google:
+          $ref: '#/components/schemas/OAuthConfigurationEntry'
+    OAuthConfigurationEntry:
+      type: object
+      properties:
+        clientId:
+          type: string
+          description: The client ID of the OAuth integration app.
+          example: test-oauth-client-id
+        clientSecret:
+          type: string
+          description: The client secret of the OAuth integration app.
+          example: test-oauth-client-secret
+    ConfigSavedResponse:
+      type: object
+      required:
+        - configSaved
+        - effectResults
+      properties:
+        configSaved:
+          type: string
+          description: The name of the configuration entry that has been saved.
+          example: elasticSearch
+        effectResults:
+          type: array
+          description: Results from applying effects
+          items:
+            $ref: '#/components/schemas/ConfigEffectResult'
+    ConfigEffectResult:
+      type: object
+      properties:
+        effect:
+          type: string 
+          description: The name of the effect that was applied
+          example: testConnection
+        didRun:
+          type: boolean
+          description: Whether or not the effect ran.
+        succeeded:
+          type: boolean
+          example: true
+        message:
+          type: string
+          description: Provides any extra information about
+          example: Succeeded.
+    ForbiddenResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: You do not have permission to carry out this action
     UnexpectedErrorResponse:
       type: object
       properties:
         message:
           type: string
           example: An unexpected error occurred
-security:
-  - bearerAuth: []
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT    # optional, arbitrary value for documentation purposes
