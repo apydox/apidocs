@@ -28,9 +28,9 @@ paths:
           required: false
           schema:
             type: string
-            enum: [testConnection]
+            enum: [testConnection, testEmail]
           example: testConnection
-          description: A side-effect to run before or after persisting config, currently only testConnection is supported, which happens before persisting configuration where failure means the config will not be saved.
+          description: A side-effect to run before or after persisting config, currently only testConnection and testEmail are supported, which happens before persisting configuration where failure means the config will not be saved.
       requestBody:
           description: The configuration to be saved
           required: true
@@ -40,6 +40,7 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/ElasticSearchConfiguration'
                   - $ref: '#/components/schemas/DatabaseConfiguration'
+                  - $ref: '#/components/schemas/EmailSMTPConfiguration'
                   - $ref: '#/components/schemas/IdentityProviderConfiguration'
       responses:
         200:
@@ -165,6 +166,29 @@ components:
           type: string
           description: The client secret of the OAuth integration app.
           example: test-oauth-client-secret
+    EmailSMTPConfiguration:
+      type: object
+      required:
+        - smtpHost
+        - smtpPort
+        - fromEmail
+        - password
+      properties:
+        smtpHost:
+          type: string
+          description: The host of the SMTP server to send emails through.
+          example: smtp.gmail.com
+        smtpPort:
+          type: string
+          description: The port to connect to the SMTP server on.
+          example: 587
+        password:
+          type: string
+          description: The password for the send from email on the SMTP server.
+        fromEmail:
+          type: string
+          description: The email address to send emails from apydox as.
+          example: me@company.com
     ConfigSavedResponse:
       type: object
       required:
@@ -197,6 +221,13 @@ components:
           type: string
           description: Provides any extra information about
           example: Succeeded.
+    UserInfoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The user's id in the apydox portal
+          example: fc2af89f-5f36-4625-b11d-a32dfba8eb40
     ForbiddenResponse:
       type: object
       properties:
@@ -209,6 +240,18 @@ components:
         message:
           type: string
           example: An unexpected error occurred
+    UnauthorisedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Unauthorised
+    SetupRequiredResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: apydox instance has not yet been set up
   securitySchemes:
     bearerAuth:            # arbitrary name for the security scheme
       type: http
